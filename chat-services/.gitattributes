@@ -1,7 +1,0 @@
-# Set all text files to use LF inside Git
-* text=auto eol=lf
-
-# Optional: force specific file types
-*.py text eol=lf
-*.sql text eol=lf
-*.env text eol=lf
