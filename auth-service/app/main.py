@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from app.database.connection import init_db
 from app.routers.auth_router import auth_router
 from app.routers.user_router import user_router
-from app.core.errors import AuthOrUserException
+from app.utils.errors import AuthOrUserException
 from app.core.middleware import register_middleware
 
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
         host="localhost",
-        port=8000,
+        port=5001,
         reload=True,
         log_level="info"
     )

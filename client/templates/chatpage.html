@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConnectSphere - Chat Page</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/chatpage.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Error Modal -->
+        <div id="errorModal" class="error-modal">
+            <div class="error-content">
+                <div class="error-icon">⚠️</div>
+                <h3 class="error-title">Connection Error</h3>
+                <p class="error-message" id="errorMessage">Something went wrong</p>
+                <button class="error-close-btn" onclick="closeErrorModal()">Close</button>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Chat Rooms</h2>
+            </div>
+            <div class="room-list-container">
+                <ul id="roomList" class="room-list"></ul>
+            </div>
+            <div class="sidebar-footer">
+                <div class="create-room-form">
+                    <input type="text" id="newRoomInput" placeholder="Create or join room..." maxlength="20">
+                    <button id="createRoomBtn" title="Create or Join Room">+</button>
+                </div>
+                <div id="userProfile" class="user-profile hidden">
+                    <span id="profileUsername"></span>
+                    <button id="logoutBtn" title="Logout">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-container">
+            <!-- Login Section -->
+            <div class="login-section" id="loginSection">
+                <div class="login-form">
+                    <h1>Welcome to ConnectSphere</h1>
+                    <p>Click below to start chatting in #general</p>
+                    <button onclick="connect()">Join Chat</button>
+                </div>
+            </div>
+
+            <!-- Chat Header -->
+            <div class="chat-header hidden" id="chatHeader">
+                <h1 id="currentRoomName">#general</h1>
+                <div class="status" id="connectionStatus">
+                    <span class="offline-indicator"></span>Disconnected
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messages" class="messages">
+                <div class="welcome-message">
+                    Welcome to the chat! Start a conversation...
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="message-form hidden" id="messageForm">
+                <div class="message-input-group">
+                    <input type="text" id="messageInput" placeholder="Type your message..." maxlength="500">
+                    <button onclick="sendMessage()" title="Send Message">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/chatpage.js"></script>
+</body>
+</html>

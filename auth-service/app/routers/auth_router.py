@@ -8,9 +8,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.schemas.auth_schema import SignupModel, SignInModel
 from app.services.auth_service import AuthServices
-from app.core.utils import verify_password ,create_token
+from app.utils.utils import verify_password ,create_token
 from app.database.redis import blacklist_token,is_token_blacklisted
-from app.core.errors import UserAleradyExists
+from app.utils.errors import UserAleradyExists
 from app.core.dependency import (TokenBearer,AccessTokenBearer,RefreshTokenBearer  ,login_required)
 
 
@@ -45,6 +45,7 @@ async def signup(login_data:SignInModel,session:AsyncSession = Depends(get_sessi
                 'email' : user.email,
                 'uid': str(user.uid),
                 "username" : user.username,
+                "name" : user.name
             }
         )
         refresh_token =  create_token(
@@ -103,9 +104,3 @@ async def signout(token_data:dict = Depends(refresh_token)):
 
 
 
-@auth_router.get('/me',status_code=status.HTTP_200_OK)
-async  def current_user(user = Depends(login_required)):
-   return {
-        "message": f"Hello {user.name}, welcome home page!",
-        "email": user.email,
-    }  
