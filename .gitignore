@@ -66,3 +66,7 @@ dmypy.json
 .pytest_cache/
 
 # SQLite / Postgres / DB
+
+# Keys
+**/keys/
+*.pem
