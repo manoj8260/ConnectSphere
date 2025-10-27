@@ -30,7 +30,7 @@ class TokenBearer(HTTPBearer):
         jti = token_data["jti"]
         if await is_token_blacklisted(jti):
             raise HTTPException(
-                status_code=status.HTTP_401_UNappORIZED,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
                 headers={"WWW-appenticate": "Bearer"},
             )
@@ -56,7 +56,7 @@ class RefreshTokenBearer(TokenBearer):
     def verify_token_type(self, token_data: dict):
         if token_data and not token_data.get("refresh"):
             raise HTTPException(
-                status_code=status.HTTP_401_UNappORIZED,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"message": "Refresh token required",
                         "hint": "You passed an access token"},
             )

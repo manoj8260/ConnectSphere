@@ -3,8 +3,10 @@ from typing import Optional,List
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Column ,ForeignKey ,Relationship
 from sqlalchemy.dialects import postgresql as pg
-from app.schema.message import MessageType
-from sqlalchemy import Enum
+from app.schema.chat_room_schema import MessageType ,RoomType ,RoleType
+
+
+from sqlalchemy import Enum , Text
 
 
 
@@ -16,6 +18,10 @@ class Room(SQLModel, table=True):
         sa_column=Column(pg.UUID(as_uuid=True), primary_key=True, nullable=False)
     )
     room_name: str = Field(sa_column=Column(pg.VARCHAR(100), unique=True, index=True, nullable=False))
+    description: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    room_type: RoomType = Field(sa_column=Column(pg.VARCHAR(20), default=RoomType.GROUP, nullable=False))
+    is_active: bool = Field(default=True)
+
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP(timezone=True), default=datetime.utcnow, nullable=False))
     
     # Just store the creator's user ID (no DB-level FK to auth-service)
@@ -62,7 +68,9 @@ class RoomParticipant(SQLModel, table=True):
     user_id: uuid.UUID = Field(
         sa_column=Column(pg.UUID(as_uuid=True), primary_key=True, nullable=False, index=True)
     )
-    role: str = Field(sa_column=Column(pg.VARCHAR(20), nullable=False, default="member"))
+    role: RoleType = Field(
+        sa_column=Column(pg.VARCHAR(20), nullable=False, default=RoleType.member)
+    )
     joined_at: datetime = Field(sa_column=Column(pg.TIMESTAMP(timezone=True), default=datetime.utcnow, nullable=False))
 
     room: Optional[Room] = Relationship(back_populates="participants")

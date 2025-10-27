@@ -9,7 +9,8 @@ async_engine :AsyncEngine = create_async_engine(
 )
 async def init_db():
     async with async_engine.begin() as conn:
-        from models.message import Message , Room
+        from app.models.chat_room import Message , Room
+        from app.models.user_snapshot import UserSnapshot 
         await conn.run_sync(SQLModel.metadata.create_all)
         # statement = text("SELECT 'hello' ;")
         

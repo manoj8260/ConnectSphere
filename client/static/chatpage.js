@@ -1,4 +1,5 @@
 // === ConnectSphere Chat JavaScript - Fixed Alignment ===
+window.addEventListener("DOMContentLoaded", loadUserRooms);
 
 // --- CONFIGURATION ---
 const config = {
@@ -8,12 +9,16 @@ const config = {
 };
 
 // --- GLOBAL STATE ---
+
 let ws = null;
 let username = '';
 let currentRoom = 'general';
 let reconnectAttempts = 0;
 let isConnecting = false;
-
+const refreshToken = sessionStorage.getItem('refreshToken') || 
+                            localStorage.getItem('refreshToken');
+const accessToken = sessionStorage.getItem('accessToken') || 
+                            localStorage.getItem('accessToken');
 // --- DOM ELEMENTS ---
 const app = {
     // Main containers
@@ -81,7 +86,7 @@ function connect() {
         updateConnectionStatus('connecting');
 
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${config.backendHost}/ws/chat?room_id=${currentRoom}&token=${token}`;
+        const wsUrl = `${protocol}//${config.backendHost}/ws/chat?room_name=${currentRoom}&token=${token}`;
         
         console.log(`🔌 Connecting to: ${wsUrl}`);
         ws = new WebSocket(wsUrl);
@@ -164,6 +169,46 @@ function updateConnectionStatus(status) {
 }
 
 // --- MESSAGE HANDLING ---
+async function loadMessagesForRoom(roomName) {
+    try {
+        const res = await fetch(`http://127.0.0.1:5002/message/messages/${roomName}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`,
+            },
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            showError(err.detail || `Failed to load messages for ${roomName}`);
+            return;
+        }
+
+        const messages = await res.json();
+
+        // Clear old messages
+        // clearMessages();
+
+        // Render each message
+        messages.forEach(msg => {
+            const messageData = {
+                username: msg.username || "Unknown",
+                message: msg.message,
+                message_type: msg.message_type || "message",
+                timestamp: msg.timestamp,
+            };
+            addMessageToUI(messageData);
+        });
+
+        console.log(`💬 Loaded ${messages.length} messages for room '${roomName}'`);
+
+    } catch (error) {
+        console.error("❌ Error loading messages:", error);
+        showError("Unable to load chat history. Please try again later.");
+    }
+}
+
 function sendMessage() {
     const message = app.messageInput.value.trim();
     if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
@@ -176,9 +221,7 @@ function sendMessage() {
 
     try {
         const messageData = {
-            type: "message",
-            message: message,
-            room_id: currentRoom
+            message: message,    
         };
         
         ws.send(JSON.stringify(messageData));
@@ -293,32 +336,75 @@ function updateActiveRoom(roomId) {
 }
 
 // --- ROOM MANAGEMENT ---
-function createOrJoinRoom() {
+// ✅ Create or join a room (enhanced version)
+async function createOrJoinRoom() {
     const newRoomName = app.newRoomInput?.value.trim();
+
+    // 🔹 Basic validation
     if (!newRoomName || newRoomName.length === 0) {
         showError('Please enter a room name');
         return;
     }
-    
+
     if (newRoomName.length > 20) {
         showError('Room name must be 20 characters or less');
         return;
     }
-    
-    // Sanitize room name
+
+    // 🔹 Sanitize room name
     const sanitizedRoomName = newRoomName.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
     if (sanitizedRoomName !== newRoomName.toLowerCase()) {
         showError('Room name can only contain letters, numbers, hyphens, and underscores');
         return;
     }
-    
+
+    // 🔹 Check if already in the same room
     if (sanitizedRoomName === currentRoom) {
         showError('You are already in this room');
         return;
     }
-    
-    switchRoom(sanitizedRoomName);
-    app.newRoomInput.value = "";
+
+    try {
+        // 🔹 Try to create the room via FastAPI
+        const res = await fetch('http://127.0.0.1:5002/room/create_room', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ room_name: sanitizedRoomName , room_type :"group"}),
+        });
+
+        let data;
+
+        // 🔹 If room already exists (409 or specific error)
+        if (!res.ok) {
+            const err = await res.json();
+
+            if (res.status === 409 || err.detail?.includes("already exists")) {
+                console.warn("⚠️ Room already exists, joining instead...");
+                // Just join instead of showing error
+                switchRoom(sanitizedRoomName);
+                app.newRoomInput.value = "";
+                return;
+            }
+
+            showError(err.detail || "Failed to create room");
+            return;
+        }
+
+        // ✅ Room created successfully
+        data = await res.json();
+        console.log("✅ Room created:", data);
+
+        // addRoomToSidebar(data.name);
+        switchRoom(sanitizedRoomName);
+        app.newRoomInput.value = "";
+
+    } catch (err) {
+        console.error("Error creating/joining room:", err);
+        showError("Something went wrong while creating or joining the room");
+    }
 }
 
 function switchRoom(roomId) {
@@ -337,6 +423,9 @@ function switchRoom(roomId) {
     
     // Clear messages for new room
     clearMessages();
+
+    loadMessagesForRoom(roomId);
+
     
     // Connect to new room
     connect();
@@ -348,27 +437,63 @@ function switchRoom(roomId) {
     updateCurrentRoom(roomId);
 }
 
-function addRoomToSidebar(roomId) {
+async function loadUserRooms() {
+    try {
+        const res = await fetch('http://127.0.0.1:5002/room/user_rooms', {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`, // your JWT or token
+            },
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            showError(err.detail || "Failed to load your rooms");
+            return;
+        }
+
+        const rooms = await res.json();
+        console.log("✅ Rooms fetched:", rooms);
+
+        // Clear sidebar first
+        if (app.roomList) {
+            app.roomList.innerHTML = "";
+        }
+
+        // Add each room to sidebar
+        rooms.forEach(room => {
+            // room.name from backend since you’re returning Room model
+            addRoomToSidebar(room.room_name);
+        });
+
+    } catch (error) {
+        console.error("❌ Error loading user rooms:", error);
+        showError("Unable to load rooms. Please try again later.");
+    }
+}
+
+function addRoomToSidebar(roomName) {
     if (!app.roomList) return;
     
     // Check if room already exists
-    const existingRoom = app.roomList.querySelector(`.room-item[data-room="${roomId}"]`);
+    const existingRoom = app.roomList.querySelector(`.room-item[data-room="${roomName}"]`);
     if (existingRoom) return;
     
     const li = document.createElement("li");
     li.className = "room-item";
-    li.setAttribute('data-room', roomId);
+    li.setAttribute("data-room", roomName);
     li.innerHTML = `
         <div class="room-info">
-            <div class="room-name">#${roomId}</div>
+            <div class="room-name">#${roomName}</div>
             <div class="room-users">Click to join</div>
         </div>
     `;
     
-    li.addEventListener("click", () => switchRoom(roomId));
+    li.addEventListener("click", () => switchRoom(roomName));
     app.roomList.appendChild(li);
     
-    console.log(`➕ Added room ${roomId} to sidebar`);
+    console.log(`➕ Added room ${roomName} to sidebar`);
 }
 
 function clearMessages() {
@@ -390,10 +515,7 @@ async function logout() {
     app.logoutBtn.disabled = true;
     app.logoutBtn.textContent = 'Logging out...';
 
-    try {
-        const refreshToken = sessionStorage.getItem('refreshToken') || 
-                            localStorage.getItem('refreshToken');
-        
+    try {     
         if (refreshToken) {
             const response = await fetch('http://127.0.0.1:8000/api/v1/auth/logout', {
                 method: 'POST',
