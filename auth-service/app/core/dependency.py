@@ -4,11 +4,11 @@ from fastapi.requests import Request
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from typing import List
-from app.core.utils import token_decode
+from app.utils.utils import token_decode
 from app.database.redis import is_token_blacklisted
 from app.services.auth_service import AuthServices
 from app.database.connection import get_session
-from app.core.errors import InvalidOrExpireToken, UserNotFound
+from app.utils.errors import InvalidOrExpireToken, UserNotFound
 from functools import wraps
 
 auth_servises = AuthServices()
@@ -30,7 +30,7 @@ class TokenBearer(HTTPBearer):
         jti = token_data["jti"]
         if await is_token_blacklisted(jti):
             raise HTTPException(
-                status_code=status.HTTP_401_UNappORIZED,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
                 headers={"WWW-appenticate": "Bearer"},
             )
@@ -56,7 +56,7 @@ class RefreshTokenBearer(TokenBearer):
     def verify_token_type(self, token_data: dict):
         if token_data and not token_data.get("refresh"):
             raise HTTPException(
-                status_code=status.HTTP_401_UNappORIZED,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"message": "Refresh token required",
                         "hint": "You passed an access token"},
             )
@@ -67,6 +67,7 @@ async def get_current_user(
     token_data: dict = Depends(access_token),
     session: AsyncSession = Depends(get_session),
 ):
+   
     email = token_data["user"]["email"]
     if not email:
         raise InvalidOrExpireToken()
@@ -77,7 +78,6 @@ async def get_current_user(
 
 async def login_required(user=Depends(get_current_user)):
     return user
-
 def role_based_permission(allowed_roles :List[str]):
     def decorator(router_fun):
         @wraps(router_fun)
@@ -95,5 +95,5 @@ def role_based_permission(allowed_roles :List[str]):
     
             
     
-        
+
 

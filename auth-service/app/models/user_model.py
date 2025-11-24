@@ -31,11 +31,7 @@ class User(SQLModel,table=True):
     updated_at : datetime = Field(sa_column=Column(pg.TIMESTAMP(timezone=True),default =datetime.utcnow,onupdate=datetime.utcnow))
     
 
-     # A user can send many messages
-    # messages: List["Message"] = Relationship(back_populates="user")
-    #  # A user can create many rooms
-    # created_rooms: List["Room"] = Relationship(back_populates="creator")
-
+    
         
 
     

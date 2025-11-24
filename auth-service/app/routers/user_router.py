@@ -4,16 +4,25 @@ from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from app.database.connection import get_session
 from app.services.user_service import UserServise
-from app.core.dependency import role_based_permission ,login_required
+from app.core.dependency import role_based_permission ,login_required ,get_current_user
 from typing import List
-from app.core.errors import UserNotFound
+from app.utils.errors import UserNotFound
 from app.schemas.user_schema import UserRead ,UserUpdate
+from fastapi import status
 
 
 
 user_router = APIRouter()
 user_servise = UserServise()
 
+
+
+@user_router.get('/current',status_code=status.HTTP_200_OK)
+async  def current_user(user = Depends(get_current_user)):
+   return {
+        "message": f"Hello {user.name}, welcome home page!",
+        "email": user.email,
+    }  
 
 @user_router.get("/users",response_model=List[UserRead])
 @role_based_permission(['admin'])
@@ -44,6 +53,7 @@ async def update_user(user_uid:str,user_data:UserUpdate,session:AsyncSession=Dep
         raise UserNotFound()
     return updated_user
     
+
   
     
     

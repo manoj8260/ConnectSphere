@@ -4,6 +4,7 @@ from  sqlalchemy.ext.asyncio.session import AsyncSession
 from  app.database.connection import  get_session
 from  app.models.user_model import User
 from sqlmodel import select ,desc
+# from app.events.publisher import event_publisher
 
 class UserServise:
     async def get_users(self,session:AsyncSession =Depends(get_session)):
@@ -32,6 +33,16 @@ class UserServise:
                setattr(user,name,value)
         await session.commit()
         await session.refresh(user)
+        
+         # Publish update event
+        # event_publisher.publish_event("user.v1.updated", {
+        #    "user_id": str(user.uid),
+        #    "username": user.username,
+        #    "email": user.email,
+        #    "name": user.name,
+        #    "is_active": user.is_active,
+        #    "role": user.role.value
+        # })
         return user  
     
     async def delete_user(self,user_uid :str,session:AsyncSession =Depends(get_session)):
@@ -39,6 +50,11 @@ class UserServise:
         if user is not None :
             await session.delete(user)
             await  session.commit()
+            
+             # Publish delete event
+            # event_publisher.publish_event("user.v1.deleted", {
+            #   "user_id": str(user_uid)
+            # })
             return {}
         else :
             return None

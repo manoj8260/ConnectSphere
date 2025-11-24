@@ -1,0 +1,35 @@
+{%extends "base.html"%}
+
+
+{%block title%}
+    ConnectSphere - Instant Messaging Hub
+{%endblock title%}
+
+{% block head %}
+ <link rel="stylesheet" href="/static/landing_page.css">
+{% endblock head %}
+
+{%block content%}
+<main class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Connect Instantly, Seamlessly.</h1>
+                <p>
+                    Welcome to ConnectSphere, the next generation of chat applications.
+                    Join conversations, share moments, and stay connected with the people who matter.
+                </p>
+                <div class="cta-buttons">
+                    <a data-modal-target="registerModal" class="btn btn-primary">Create Account</a>
+                    <a id="quickChatBtn" class="btn btn-secondary">Quick Chat</a>
+                </div>
+            </div>
+        </div>
+    </main>
+  {% include "login.html" %}  
+  {% include "register.html" %}  
+{%endblock content%}
+
+{%block scripts%}
+<script src="static/landing_page.js"></script>
+{%endblock scripts%}
+ 
