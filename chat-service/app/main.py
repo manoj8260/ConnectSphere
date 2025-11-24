@@ -32,7 +32,7 @@ async def on_redis_message(room: str, payload: Dict[str, Any]):
 @asynccontextmanager
 async def life_span(app:FastAPI):
     print("✅ Starting chat server...")
-    await redis_manager.connect(host=Config.REDIS_HOST, port=Config.REDIS_PORT, password=Config.password)
+    await redis_manager.connect(host=Config.REDIS_HOST, port=Config.REDIS_PORT)
     await redis_manager.start_subscriber(on_redis_message)
     # await init_db()
     yield

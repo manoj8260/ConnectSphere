@@ -84,36 +84,68 @@ class RoomService:
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none() is not None
-    # create room
-    async def create_room(self,
-                          room_data:dict,
-                          session:AsyncSession,
-                          user_data:dict):
-        exist_room =  await self._room_exists_by_name(room_data["room_name"],session)
-        if exist_room :
-           raise RoomAleradyExists()
+   
+    async def create_or_join_room(
+        self,
+        room_data: dict,
+        user_data: dict,
+        session: AsyncSession
+    ) -> Room:
+        """
+        If the room exists, user joins it.
+        If it doesn't, user creates it.
+        """
+        # 1️⃣ Check if room already exists
+
+        existing_room = await self._room_exists_by_name(room_data["room_name"], session)
+
+        # Get or create user snapshot
         snapshot = await self.user_snapshot_service.upsert_snapshot(session, user_data)
-        new_room = Room(
-                room_name=room_data["room_name"],
-                description=room_data["description"],
-                room_type=room_data["room_type"],
-                creator_id=snapshot.user_id,
-                # created_at= datetime.utcnow()
+
+        if existing_room:
+            # 2️⃣ If room exists → add user as participant if not already there
+            already_participant = await self._participant_exists(
+                existing_room.rid, snapshot.user_id, session
             )
-        session.add(new_room)
-        # await session.flush(new_room)  # Ensure new_room.rid is populated
-        await  session.flush() 
-             # Add creator as admin participant
-        participant = RoomParticipant(
+
+            if already_participant:
+                logger.info(f"User {snapshot.user_id} already joined room '{existing_room.room_name}'.")
+                return existing_room
+
+            participant = RoomParticipant(
+                room_id=existing_room.rid,
+                user_id=snapshot.user_id,
+                role=RoleType.member
+            )
+            session.add(participant)
+            await session.commit()
+            await session.refresh(existing_room)
+            logger.info(f"User {snapshot.user_id} joined existing room '{existing_room.room_name}'.")
+            return existing_room
+
+        else:
+            # 3️⃣ If room doesn’t exist → create new one
+            new_room = Room(
+                room_name=room_data["room_name"],
+                description=room_data.get("description", ""),
+                room_type=room_data.get("room_type", "public"),
+                creator_id=snapshot.user_id
+            )
+            session.add(new_room)
+            await session.flush()  # Get room ID
+
+            # Creator becomes admin
+            participant = RoomParticipant(
                 room_id=new_room.rid,
                 user_id=snapshot.user_id,
                 role=RoleType.admin
             )
-        session.add(participant)
-        await session.commit()
-        logger.info(f"Room '{new_room.room_name}' created by {snapshot.username}")  
-        return new_room
-    
+            session.add(participant)
+            await session.commit()
+            await session.refresh(new_room)
+            logger.info(f"Room '{new_room.room_name}' created by {snapshot.user_id}")
+            return new_room
+
     async def delete_room(self,room_name:str,session:AsyncSession)->bool:
         room = await self._room_exists_by_name(room_name,session)
         

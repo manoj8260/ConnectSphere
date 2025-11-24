@@ -47,7 +47,7 @@ class Message(SQLModel, table=True):
     message: str = Field(sa_column=Column(pg.TEXT, nullable=False))
     message_type: MessageType = Field(sa_column=Column(Enum(MessageType), nullable=False, default=MessageType.CHAT))
     timestamp: datetime = Field(sa_column=Column(pg.TIMESTAMP(timezone=True), default=datetime.utcnow, nullable=False))
-    
+    sender_username: str = Field(sa_column=Column(pg.VARCHAR(50), nullable=False))
     # Just store the sender's user ID from auth-service
     user_id: uuid.UUID = Field(sa_column=Column(pg.UUID(as_uuid=True), nullable=False, index=True))
     

@@ -30,10 +30,12 @@ class RoomInfo(BaseModel):
     room_type: RoomType = RoomType.GROUP
     
 
-class ChatMessage(BaseModel):
-    room_name: str = Field(..., description="room_name of the room where message was sent")
-    message: str = Field(..., description="The message content")
-    message_type : MessageType = Field(default=MessageType.CHAT,description="Type of the message")
+# class ChatMessage(BaseModel): 
+#     room_name: str 
+#     message: str 
+#     message_type : MessageType 
+#     message_id :uuid.UUID
+    
    
 
     
@@ -44,4 +46,27 @@ class UserInfo(BaseModel):
     connected_at: datetime = Field(default_factory=datetime.utcnow, description="Connection timestamp")
     is_online: bool = Field(default=True, description="Online status")   
     
-          
+
+# --- Base Schema ---
+class MessageBase(BaseModel):
+    message: str = Field(..., example="Hello everyone!")
+    message_type: MessageType = Field(default=MessageType.CHAT, example="chat")
+
+
+# --- Create Schema ---
+class MessageCreate(MessageBase):
+    room_name: str
+    
+
+
+# --- Read Schema ---
+class MessageRead(MessageBase):
+    mid: uuid.UUID
+    timestamp: datetime
+    user_id: uuid.UUID
+    room_id: uuid.UUID
+    # username: Optional[str] = Field(None, description="Optional username for display (from auth service)")
+    sender_username :str 
+    
+    class Config:
+        orm_mode = True

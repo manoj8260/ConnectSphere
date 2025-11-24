@@ -1,4 +1,4 @@
-// === ConnectSphere Chat JavaScript - Fixed Alignment ===
+// === ConnectSphere Chat JavaScript - Enhanced ===
 window.addEventListener("DOMContentLoaded", loadUserRooms);
 
 // --- CONFIGURATION ---
@@ -9,16 +9,16 @@ const config = {
 };
 
 // --- GLOBAL STATE ---
-
 let ws = null;
 let username = '';
-let currentRoom = 'general';
+let currentRoom ;
 let reconnectAttempts = 0;
 let isConnecting = false;
 const refreshToken = sessionStorage.getItem('refreshToken') || 
                             localStorage.getItem('refreshToken');
 const accessToken = sessionStorage.getItem('accessToken') || 
                             localStorage.getItem('accessToken');
+
 // --- DOM ELEMENTS ---
 const app = {
     // Main containers
@@ -35,12 +35,17 @@ const app = {
     currentRoomName: document.getElementById('currentRoomName'),
     connectionStatus: document.getElementById('connectionStatus'),
     profileUsername: document.getElementById('profileUsername'),
+
+    
     
     // Interactive elements
     userProfile: document.getElementById('userProfile'),
     logoutBtn: document.getElementById('logoutBtn'),
     createRoomBtn: document.getElementById('createRoomBtn'),
     roomList: document.getElementById('roomList'),
+    
+    // Empty state
+    emptyRoomState: document.getElementById('emptyRoomState'),
     
     // Error modal
     errorModal: document.getElementById('errorModal'),
@@ -65,7 +70,7 @@ function closeErrorModal() {
 }
 
 // --- CONNECTION MANAGEMENT ---
-function connect() {
+function connect(roomName) {
     if (isConnecting) {
         console.log('Already attempting to connect...');
         return;
@@ -86,11 +91,11 @@ function connect() {
         updateConnectionStatus('connecting');
 
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${config.backendHost}/ws/chat?room_name=${currentRoom}&token=${token}`;
+        const wsUrl = `${protocol}//${config.backendHost}/ws/chat?room_name=${roomName}&token=${token}`;
         
         console.log(`🔌 Connecting to: ${wsUrl}`);
         ws = new WebSocket(wsUrl);
-        setupWebSocketEventHandlers();
+        setupWebSocketEventHandlers(roomName);
         
     } catch (error) {
         console.error('Failed to decode token or connect:', error);
@@ -99,7 +104,7 @@ function connect() {
     }
 }
 
-function setupWebSocketEventHandlers() {
+function setupWebSocketEventHandlers(roomName) {
     if (!ws) return;
 
     ws.onopen = () => {
@@ -109,7 +114,7 @@ function setupWebSocketEventHandlers() {
         
         showChatInterface();
         updateProfile();
-        updateCurrentRoom(currentRoom);
+        updateCurrentRoom(roomName);
         updateConnectionStatus('connected');
     };
 
@@ -141,14 +146,14 @@ function setupWebSocketEventHandlers() {
     };
 }
 
-function scheduleReconnect() {
+function scheduleReconnect(roomName) {
     reconnectAttempts++;
     console.log(`🔄 Scheduling reconnect attempt ${reconnectAttempts}/${config.maxReconnectAttempts}`);
     
     setTimeout(() => {
         if (reconnectAttempts <= config.maxReconnectAttempts) {
             console.log(`🔄 Reconnect attempt ${reconnectAttempts}`);
-            connect();
+            connect(roomName);
         } else {
             showError('Connection lost. Please refresh the page to reconnect.');
         }
@@ -187,13 +192,10 @@ async function loadMessagesForRoom(roomName) {
 
         const messages = await res.json();
 
-        // Clear old messages
-        // clearMessages();
-
         // Render each message
         messages.forEach(msg => {
             const messageData = {
-                username: msg.username || "Unknown",
+                username: msg.sender_username || "Unknown",
                 message: msg.message,
                 message_type: msg.message_type || "message",
                 timestamp: msg.timestamp,
@@ -308,7 +310,7 @@ function showChatInterface() {
     app.loginSection?.classList.add("hidden");
     app.chatHeader?.classList.remove("hidden");
     app.messageForm?.classList.remove("hidden");
-    app.userProfile?.classList.remove("hidden");
+    // app.userProfile?.classList.remove("hidden");
 }
 
 function updateProfile() {
@@ -317,30 +319,49 @@ function updateProfile() {
     }
 }
 
-function updateCurrentRoom(roomId) {
+
+function updateCurrentRoom(roomName) {
     if (app.currentRoomName) {
-        app.currentRoomName.textContent = `#${roomId}`;
+        app.currentRoomName.textContent = `${roomName}`;
     }
     // Update active room in sidebar
-    updateActiveRoom(roomId);
+    updateActiveRoom(roomName);
 }
 
-function updateActiveRoom(roomId) {
+function updateActiveRoom(roomName) {
     // Remove active class from all rooms
     const allRooms = app.roomList?.querySelectorAll('.room-item');
     allRooms?.forEach(room => room.classList.remove('active'));
     
     // Add active class to current room
-    const activeRoom = app.roomList?.querySelector(`.room-item[data-room="${roomId}"]`);
+    const activeRoom = app.roomList?.querySelector(`.room-item[data-room="${roomName}"]`);
     activeRoom?.classList.add('active');
 }
 
+// --- EMPTY STATE MANAGEMENT ---
+function showEmptyState() {
+    if (app.emptyRoomState) {
+        app.emptyRoomState.classList.remove('hidden');
+    }
+    if (app.roomList) {
+        app.roomList.classList.add('hidden');
+    }
+}
+
+function hideEmptyState() {
+    if (app.emptyRoomState) {
+        app.emptyRoomState.classList.add('hidden');
+    }
+    if (app.roomList) {
+        app.roomList.classList.remove('hidden');
+    }
+}
+
 // --- ROOM MANAGEMENT ---
-// ✅ Create or join a room (enhanced version)
 async function createOrJoinRoom() {
     const newRoomName = app.newRoomInput?.value.trim();
 
-    // 🔹 Basic validation
+    // Basic validation
     if (!newRoomName || newRoomName.length === 0) {
         showError('Please enter a room name');
         return;
@@ -351,33 +372,31 @@ async function createOrJoinRoom() {
         return;
     }
 
-    // 🔹 Sanitize room name
+    // Sanitize room name
     const sanitizedRoomName = newRoomName.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
     if (sanitizedRoomName !== newRoomName.toLowerCase()) {
         showError('Room name can only contain letters, numbers, hyphens, and underscores');
         return;
     }
 
-    // 🔹 Check if already in the same room
+    // Check if already in the same room
     if (sanitizedRoomName === currentRoom) {
         showError('You are already in this room');
         return;
     }
 
     try {
-        // 🔹 Try to create the room via FastAPI
+        // Try to create the room via FastAPI
         const res = await fetch('http://127.0.0.1:5002/room/create_room', {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${accessToken}`,
             },
-            body: JSON.stringify({ room_name: sanitizedRoomName , room_type :"group"}),
+            body: JSON.stringify({ room_name: sanitizedRoomName, room_type: "group" }),
         });
 
-        let data;
-
-        // 🔹 If room already exists (409 or specific error)
+        // If room already exists (409 or specific error)
         if (!res.ok) {
             const err = await res.json();
 
@@ -393,11 +412,13 @@ async function createOrJoinRoom() {
             return;
         }
 
-        // ✅ Room created successfully
-        data = await res.json();
+        // Room created successfully
+        const data = await res.json();
         console.log("✅ Room created:", data);
 
-        // addRoomToSidebar(data.name);
+        // Hide empty state if it was showing
+        hideEmptyState();
+
         switchRoom(sanitizedRoomName);
         app.newRoomInput.value = "";
 
@@ -407,14 +428,14 @@ async function createOrJoinRoom() {
     }
 }
 
-function switchRoom(roomId) {
-    if (roomId === currentRoom) {
-        console.log(`Already in room ${roomId}`);
+function switchRoom(roomName) {
+    if (roomName === currentRoom) {
+        console.log(`Already in room ${roomName}`);
         return;
     }
     
-    console.log(`🔄 Switching from ${currentRoom} to ${roomId}`);
-    currentRoom = roomId;
+    console.log(`🔄 Switching from ${currentRoom} to ${roomName}`);
+    currentRoom = roomName;
     
     // Close existing connection and reconnect to new room
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -424,17 +445,16 @@ function switchRoom(roomId) {
     // Clear messages for new room
     clearMessages();
 
-    loadMessagesForRoom(roomId);
-
+    loadMessagesForRoom(roomName);
     
     // Connect to new room
-    connect();
+    connect(roomName);
     
     // Add room to sidebar if it doesn't exist
-    addRoomToSidebar(roomId);
+    addRoomToSidebar(roomName);
     
     // Update UI
-    updateCurrentRoom(roomId);
+    updateCurrentRoom(roomName);
 }
 
 async function loadUserRooms() {
@@ -443,7 +463,7 @@ async function loadUserRooms() {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${accessToken}`, // your JWT or token
+                "Authorization": `Bearer ${accessToken}`,
             },
         });
 
@@ -461,9 +481,18 @@ async function loadUserRooms() {
             app.roomList.innerHTML = "";
         }
 
+        // Check if there are any rooms
+        if (!rooms || rooms.length === 0) {
+            console.log("📭 No rooms found for this user");
+            showEmptyState();
+            return;
+        }
+
+        // Hide empty state and show room list
+        hideEmptyState();
+
         // Add each room to sidebar
         rooms.forEach(room => {
-            // room.name from backend since you’re returning Room model
             addRoomToSidebar(room.room_name);
         });
 
@@ -473,28 +502,63 @@ async function loadUserRooms() {
     }
 }
 
+
 function addRoomToSidebar(roomName) {
     if (!app.roomList) return;
-    
-    // Check if room already exists
+
     const existingRoom = app.roomList.querySelector(`.room-item[data-room="${roomName}"]`);
     if (existingRoom) return;
-    
+
+    hideEmptyState();
+
     const li = document.createElement("li");
     li.className = "room-item";
     li.setAttribute("data-room", roomName);
-    li.innerHTML = `
-        <div class="room-info">
-            <div class="room-name">#${roomName}</div>
+
+   li.innerHTML = `
+    <div class="room-info">
+        <div class="room-left">
+            <div class="room-name">${roomName}</div>
             <div class="room-users">Click to join</div>
         </div>
-    `;
-    
-    li.addEventListener("click", () => switchRoom(roomName));
+        <button class="delete-room-btn" title="Delete room">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+    </div>
+`;
+
+
+    // Click to join room
+    li.querySelector(".room-name").addEventListener("click", () => switchRoom(roomName));
+
+    // Delete room
+    li.querySelector(".delete-room-btn").addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (!confirm(`Delete room #${roomName}?`)) return;
+
+        try {
+            const res = await fetch(`http://127.0.0.1:5002/room/delete_room/${roomName}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${accessToken}`,
+                },
+            });
+
+            if (!res.ok) throw new Error("Failed to delete room");
+
+            li.remove();
+            console.log(`🗑️ Deleted room ${roomName}`);
+        } catch (err) {
+            console.error(err);
+            alert("Error deleting room.");
+        }
+    });
+
     app.roomList.appendChild(li);
-    
-    console.log(`➕ Added room ${roomName} to sidebar`);
 }
+
+
 
 function clearMessages() {
     if (app.messages) {
@@ -522,7 +586,7 @@ async function logout() {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${refreshToken}`
-                }
+                } 
             });
 
             if (!response.ok) {
@@ -614,10 +678,6 @@ function initializeChat() {
     // Set up event listeners
     setupEventListeners();
     
-    // Add default room to sidebar
-    addRoomToSidebar('general');
-    updateActiveRoom('general');
-    
     // Check if user is already logged in
     const token = sessionStorage.getItem("accessToken");
     if (token) {
@@ -626,9 +686,11 @@ function initializeChat() {
             const expiry = payload.exp * 1000; // Convert to milliseconds
             
             if (Date.now() < expiry) {
-                console.log('👤 Found valid token, auto-connecting...');
-                // Small delay to ensure DOM is ready
-                setTimeout(connect, 100);
+                console.log('👤 Found valid token, loading rooms...');
+                // Load user rooms first, then connect if rooms exist
+                app.userProfile?.classList.remove("hidden");   // <-- SHOW PROFILE HERE
+                loadUserRooms();
+                ;
             } else {
                 console.log('⏰ Token expired, please log in again');
                 sessionStorage.removeItem("accessToken");

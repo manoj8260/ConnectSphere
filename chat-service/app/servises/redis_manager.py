@@ -24,8 +24,18 @@ class RedisManager:
 
     async def connect(self, host: str, port: int, db: int = 0, password: Optional[str] = None):
         try:
+            # Build connection kwargs dynamically
+            connection_kwargs = {
+                 "host": host,
+                 "port": port,
+                 "db": db,
+                 "decode_responses": True
+            }
+            # Only include password if provided
+            if password:
+                connection_kwargs['password'] = password
             self.redis_pool = ConnectionPool(
-                host=host, port=port, db=db, password=password, decode_responses=True
+               **connection_kwargs
             )
             self.client = redis.Redis(connection_pool=self.redis_pool)
             await self.client.ping()

@@ -29,7 +29,7 @@ async def user_rooms(session:AsyncSession=Depends(get_session),
 
 
 @roomrouter.post('/create_room')
-async def create_room(room_info:RoomInfo,
+async def createjoin_room(room_info:RoomInfo,
                       session:AsyncSession=Depends(get_session), 
                       authorization: str = Header(...),
                       room_service:RoomService =Depends(get_room_service)):
@@ -46,7 +46,7 @@ async def create_room(room_info:RoomInfo,
     
     room_data["creator_id"] = user_data['user']['uid']
     print(room_data,'🤔')
-    create_room = await  room_service.create_room(room_data,session, creator_data)
+    create_room = await  room_service.create_or_join_room(room_data,creator_data,session)
     return create_room
 
 @roomrouter.delete('/delete_room/{room_name}')

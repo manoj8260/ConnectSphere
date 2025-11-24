@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings ,SettingsConfigDict
 from pydantic import Field
 from pathlib import Path
+from typing import Optional
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_PATH = BASE_DIR/".env"  
@@ -12,7 +13,7 @@ class Settings(BaseSettings):
     
     REDIS_HOST : str = Field(default='localhost')
     REDIS_PORT :int =  Field(default=6379)
-    password :str  
+    password : Optional[str] = None
    
     model_config = SettingsConfigDict(
         env_file=ENV_PATH,

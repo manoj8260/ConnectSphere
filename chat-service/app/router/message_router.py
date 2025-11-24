@@ -2,9 +2,10 @@ from fastapi import FastAPI,APIRouter ,Depends,Header
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.database.connection import get_session
-from app.schema.chat_room_schema import MessageType , ChatMessage
+from app.schema.chat_room_schema import     MessageRead ,MessageCreate
 from app.servises.message_service import MessageService ,get_message_service
 from app.servises.room_service import RoomService ,get_room_service
+from app.servises.user_snapshot_service import get_user_snapshot_service ,UserSnapshotService
 from app.core.dependency import get_current_user
 from app.models.chat_room import Message
 from fastapi.exceptions import HTTPException
@@ -20,11 +21,12 @@ messagerouter = APIRouter()
 
 @messagerouter.post("/send_msg", response_model=Message, status_code=status.HTTP_201_CREATED)
 async def send_message(
-    message_info: ChatMessage,
+    message_info: MessageCreate,
     session: AsyncSession = Depends(get_session),
     authorization: str = Header(..., alias="Authorization"),
     message_service: MessageService = Depends(get_message_service),
     room_service: RoomService = Depends(get_room_service),
+    user_snapshot_service : UserSnapshotService = Depends(get_user_snapshot_service)
 ):
     try:
         # Validate input
@@ -53,11 +55,10 @@ async def send_message(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have permission to send messages in this room."
             )
-        message = message_info.message
         # print('🦢',message)
         # Create message
         new_message = await message_service.create_message(
-            session, room_id, user_id, message_info.message.strip(), message_info.message_type
+            session, room_id, user_id, message_info.message.strip(), user_snapshot=user_snapshot_service, message_type= message_info.message_type
         )
 
         logger.info(f"Message sent successfully: ID={new_message.mid}, Room={room_id}, User={user_id}")
@@ -81,7 +82,7 @@ async def send_message(
             detail="An unexpected error occurred. Please try again later."
         )
         
-@messagerouter.get('/messages/{room_name}',response_model=List[Message])
+@messagerouter.get('/messages/{room_name}',response_model=List[MessageRead])
 async def get_messages(room_name:str,
                        session:AsyncSession=Depends(get_session),
                        room_service:RoomService=Depends(get_room_service),
@@ -93,6 +94,6 @@ async def get_messages(room_name:str,
                 detail=f"Room '{room_name}' not found."
             )
         room_id = room_info.rid
-        room_messages = await message_service.get_messages(session,room_id)
-        return  room_messages
+        messages = await message_service.get_messages(session,room_id)
+        return  messages
         

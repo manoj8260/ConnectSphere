@@ -6,6 +6,7 @@ from app.servises.redis_manager import redis_manager
 from app.core.dependency import get_current_user
 from app.servises.message_service import get_message_service, MessageService
 from app.servises.room_service import get_room_service, RoomService
+from app.servises.user_snapshot_service import get_user_snapshot_service , UserSnapshotService
 from app.database.connection import get_session
 import uuid
 
@@ -15,11 +16,11 @@ wsrouter = APIRouter()
 @wsrouter.websocket("/chat")
 async def websocket_endpoint(
     websocket: WebSocket,
-    # session = Depends(get_session),
-    room_name: str = Query(default="general"),
+    room_name: str ,
     token: str = Query(...),
     message_service: MessageService = Depends(get_message_service),
     room_service: RoomService = Depends(get_room_service),
+    user_snapshot_service : UserSnapshotService = Depends(get_user_snapshot_service)
 ):
     try:
         await websocket.accept()
@@ -49,7 +50,7 @@ async def websocket_endpoint(
             data = await websocket.receive_json() 
             # Persist the message
             new_message = await message_service.create_message(
-                session=session, room_id=room.rid, user_id=uuid.UUID(user_id), message=data.get('message')
+                session=session, room_id=room.rid, user_id=uuid.UUID(user_id),user_snapshot= user_snapshot_service, message=data.get('message')
             )
 
             # Publish to Redis so all instances relay it to that room

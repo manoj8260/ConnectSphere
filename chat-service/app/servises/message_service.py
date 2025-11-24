@@ -1,9 +1,11 @@
+from fastapi import Depends
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.exceptions import HTTPException
-from sqlmodel import select
+from sqlmodel import select 
 from app.models.chat_room import Message
 from app.schema.chat_room_schema import MessageType
+from app.servises.user_snapshot_service import UserSnapshotService
 from typing import List
 import uuid
 
@@ -19,7 +21,8 @@ class MessageService:
         room_id: uuid.UUID, 
         user_id: uuid.UUID, 
         message: str, 
-        message_type: MessageType = MessageType.CHAT
+        user_snapshot :  UserSnapshotService ,
+        message_type: MessageType = MessageType.CHAT,
     ) -> Message: 
         try:
            
@@ -27,12 +30,14 @@ class MessageService:
                 raise ValueError("Invalid room_id or user_id: Must be UUID.")
             if len(message) > 5000:  # Example limit
                 raise ValueError("Message too long (max 5000 characters).")
-
+            snapshot = await user_snapshot.get_snapshot(session,user_id)
+            sender_username = snapshot.username if snapshot else "Unknown"
             msg = Message(
                 room_id=room_id, 
                 user_id=user_id, 
                 message=message, 
-                message_type=message_type
+                sender_username=sender_username,
+                message_type=message_type          
             )
             session.add(msg)
             await session.commit()

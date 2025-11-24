@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/chatpage.css">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
@@ -28,6 +29,13 @@
                 <h2>Chat Rooms</h2>
             </div>
             <div class="room-list-container">
+                <!-- Empty state message (shown when no rooms) -->
+                <div id="emptyRoomState" class="empty-room-state hidden">
+                    <div class="empty-icon">💬</div>
+                    <h3>No rooms yet!</h3>
+                    <p>Create or join a room below to start chatting</p>
+                </div>
+                <!-- Room list -->
                 <ul id="roomList" class="room-list"></ul>
             </div>
             <div class="sidebar-footer">
@@ -48,14 +56,15 @@
             <div class="login-section" id="loginSection">
                 <div class="login-form">
                     <h1>Welcome to ConnectSphere</h1>
-                    <p>Click below to start chatting in #general</p>
-                    <button onclick="connect()">Join Chat</button>
+                    <!-- <p>Click below to start chatting</p> -->
+                    <p class="login-subtext">Connect with people instantly — create or join chat rooms and start chatting now!</p>
+                    <!-- <button onclick="connect()">Join Chat</button> -->
                 </div>
             </div>
 
             <!-- Chat Header -->
             <div class="chat-header hidden" id="chatHeader">
-                <h1 id="currentRoomName">#general</h1>
+                <h1 id="currentRoomName"></h1>
                 <div class="status" id="connectionStatus">
                     <span class="offline-indicator"></span>Disconnected
                 </div>
