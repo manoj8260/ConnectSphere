@@ -92,7 +92,6 @@ local_settings.py
 db.sqlite3
 media/
 staticfiles/
-static/
 *.mo
 
 # Django migrations (Optional — keep if needed)
