@@ -1,4 +1,6 @@
-# Python cache
+# -----------------------------
+# Python
+# -----------------------------
 __pycache__/
 *.py[cod]
 *.pyo
@@ -6,20 +8,10 @@ __pycache__/
 *.pkl
 *.py.class
 
-# Environment
-.env
-.venv/
-env/
-venv/
-ENV/
+# C extensions
+*.so
 
-# VSCode / PyCharm / Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Byte-compiled / distribution / packaging
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -33,11 +25,31 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyInstaller
+*.manifest
+*.spec
 
 # Unit test / coverage reports
 htmlcov/
@@ -51,22 +63,130 @@ coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
+.pytest_cache/
 
-# FastAPI / Uvicorn logs
-*.log
-
-# Mypy / Pyre / Pytype
+# Mypy / Type checkers
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pyre/
 .pytype/
 
-# Pytest cache
-.pytest_cache/
+# Logs
+*.log
+logs/
+log/
 
-# SQLite / Postgres / DB
+# SQLite / Databases
+*.sqlite3
+*.db
+*.sql
+*.sqlite
 
-# Keys
+# -----------------------------
+# Django
+# -----------------------------
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+static/
+*.mo
+
+# Django migrations (Optional — keep if needed)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# -----------------------------
+# FastAPI / Uvicorn
+# -----------------------------
+*.log
+*.pid
+
+# -----------------------------
+# Jupyter Notebook
+# -----------------------------
+.ipynb_checkpoints
+*.ipynb
+
+# -----------------------------
+# Redis / Celery
+# -----------------------------
+celerybeat-schedule
+celerybeat.pid
+
+# -----------------------------
+# Docker
+# -----------------------------
+# Skip docker build artifacts
+*.tar
+docker-compose.override.yml
+
+# -----------------------------
+# OS / Misc
+# -----------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# -----------------------------
+# IDE / Editors
+# -----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# JetBrains
+*.iml
+*.iws
+out/
+
+# -----------------------------
+# Keys / Sensitive files
+# -----------------------------
 **/keys/
 *.pem
+*.key
+*.crt
+*.csr
+*_secret*
+*secret*.txt
+
+# -----------------------------
+# Environment configs
+# -----------------------------
+.env
+*.env
+*.env.*
+.envrc
+.env.local
+.env.development
+.env.prod
+.env.production
+.env.test
+
+# -----------------------------
+# Node (if mixed project)
+# -----------------------------
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-store/
+
+# -----------------------------
+# Terraform (optional)
+# -----------------------------
+.terraform/
+*.tfstate
+*.tfstate.backup
+crash.log
+
+# -----------------------------
+# Lock files
+# -----------------------------
+*.lock
+Pipfile.lock
+poetry.lock
