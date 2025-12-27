@@ -21,10 +21,10 @@ app = FastAPI(
 
 
 # Mount static files (for CSS, JS, etc.)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(
-    directory='templates'
+    directory='app/templates'
 )
 
 
@@ -39,7 +39,7 @@ def read_root(request: Request):
     
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",
+        "app.main:app",
         host="localhost",
         port=3000,
         reload=True,

@@ -17,37 +17,37 @@
  *  - Modal must use attributes like [data-modal-target] and .modal-overlay
  */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
   // ================================================================
   // 🔹 Modal Handling
   // ================================================================
-  const modalTriggers = document.querySelectorAll("[data-modal-target]");
-  const closeButtons = document.querySelectorAll(".close-btn");
-  const modalOverlays = document.querySelectorAll(".modal-overlay");
+  const modalTriggers = document.querySelectorAll('[data-modal-target]');
+  const closeButtons = document.querySelectorAll('.close-btn');
+  const modalOverlays = document.querySelectorAll('.modal-overlay');
 
   const openModal = (modalId) => {
     const modal = document.getElementById(modalId);
-    if (modal) modal.classList.add("active");
+    if (modal) modal.classList.add('active');
   };
 
   const closeModal = () => {
-    document.querySelector(".modal-overlay.active")?.classList.remove("active");
+    document.querySelector('.modal-overlay.active')?.classList.remove('active');
   };
 
   modalTriggers.forEach((trigger) => {
-    trigger.addEventListener("click", (event) => {
+    trigger.addEventListener('click', (event) => {
       event.preventDefault();
-      const modalId = trigger.getAttribute("data-modal-target");
+      const modalId = trigger.getAttribute('data-modal-target');
       openModal(modalId);
     });
   });
 
   closeButtons.forEach((button) =>
-    button.addEventListener("click", closeModal)
+    button.addEventListener('click', closeModal)
   );
 
   modalOverlays.forEach((overlay) => {
-    overlay.addEventListener("click", (event) => {
+    overlay.addEventListener('click', (event) => {
       if (event.target === overlay) closeModal();
     });
   });
@@ -55,28 +55,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // ================================================================
   // 🔹 Quick Chat Button
   // ================================================================
-  const quickChatBtn = document.getElementById("quickChatBtn");
+  const quickChatBtn = document.getElementById('quickChatBtn');
   if (quickChatBtn) {
-    quickChatBtn.addEventListener("click", () => {
-      alert("Connecting you to a Quick Chat session as a guest...");
+    quickChatBtn.addEventListener('click', () => {
+      alert('Connecting you to a Quick Chat session as a guest...');
     });
   }
 
   // ================================================================
   // 🔹 Login Form
   // ================================================================
-  const loginForm = document.getElementById("loginForm");
+  const loginForm = document.getElementById('loginForm');
 
   if (loginForm) {
-    loginForm.addEventListener("submit", async (event) => {
+    loginForm.addEventListener('submit', async (event) => {
       event.preventDefault(); // prevent page reload
 
-      const messageElement = document.getElementById("loginMessage");
+      const messageElement = document.getElementById('loginMessage');
       if (!messageElement) {
         console.error('CRITICAL: Missing #loginMessage element in DOM.');
         return;
       }
-      messageElement.textContent = ""; // clear old messages
+      messageElement.textContent = ''; // clear old messages
 
       // Gather form data
       const formData = new FormData(loginForm);
@@ -84,38 +84,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         // Send login request
-        const response = await fetch(`http://127.0.0.1:5001/api/v1/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
+        const response = await fetch(
+          `http://127.0.0.1:5001/api/v1/auth/login`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          }
+        );
 
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.detail || "Login failed. Please check credentials.");
+          throw new Error(
+            result.detail || 'Login failed. Please check credentials.'
+          );
         }
 
-        console.log("✅ Login successful:", result);
-        
-        // ⚠️ For demo: storing in sessionStorage
+        // ⚠️ For demo: storing in localStorage
         // 👉 Recommended: use HttpOnly cookie for refreshToken in production
-        sessionStorage.setItem("accessToken", result.access_token);
-        sessionStorage.setItem("refreshToken", result.refresh_token);
+        localStorage.setItem('accessToken', result.access_token);
+        localStorage.setItem('refreshToken', result.refresh_token);
 
-        messageElement.textContent = "Login successful! Redirecting...";
-        messageElement.style.color = "green";
-
+        messageElement.textContent = 'Login successful! Redirecting...';
+        messageElement.style.color = 'green';
+        console.log('✅ Login successful:', result);
         // Redirect to chat page
         setTimeout(() => {
           loginForm.reset();
           closeModal();
-          window.location.href = `${window.location.origin.replace(":8000", ":8006")}/chat`;
+          window.location.href = `${window.location.origin.replace(
+            ':8000',
+            ':8006'
+          )}/chat`;
         }, 1500);
       } catch (error) {
-        console.error("❌ Login failed:", error);
+        console.error('❌ Login failed:', error);
         messageElement.textContent = error.message;
-        messageElement.style.color = "red";
+        messageElement.style.color = 'red';
       }
     });
   }
@@ -123,48 +129,54 @@ document.addEventListener("DOMContentLoaded", () => {
   // ================================================================
   // 🔹 Register Form
   // ================================================================
-  const registerForm = document.getElementById("registerForm");
+  const registerForm = document.getElementById('registerForm');
 
   if (registerForm) {
-    const messageElement = registerForm.querySelector("#form-message");
+    const messageElement = registerForm.querySelector('#form-message');
 
     const showMessage = (message, type) => {
       messageElement.innerHTML = message;
       messageElement.className = `form-message ${type}`;
     };
 
-    registerForm.addEventListener("submit", async (event) => {
+    registerForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      messageElement.className = "form-message"; // reset style
+      messageElement.className = 'form-message'; // reset style
 
       const formData = new FormData(event.target);
       const data = Object.fromEntries(formData.entries());
 
       try {
-        const response = await fetch(`http://127.0.0.1:5001/api/v1/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
+        const response = await fetch(
+          `http://127.0.0.1:5001/api/v1/auth/register`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          }
+        );
 
         const result = await response.json();
 
         if (!response.ok) {
-          console.error("Backend error details:", result);
+          console.error('Backend error details:', result);
           throw new Error(getErrorMessage(result));
         }
 
-        console.log("✅ Registration successful:", result);
-        showMessage(`Registration successful! Welcome, ${result.name}`, "success");
+        console.log('✅ Registration successful:', result);
+        showMessage(
+          `Registration successful! Welcome, ${result.name}`,
+          'success'
+        );
 
         setTimeout(() => {
           closeModal();
           registerForm.reset();
-          messageElement.className = "form-message";
+          messageElement.className = 'form-message';
         }, 2000);
       } catch (error) {
-        console.error("❌ Registration failed:", error);
-        showMessage(`Registration failed:<br>${error.message}`, "error");
+        console.error('❌ Registration failed:', error);
+        showMessage(`Registration failed:<br>${error.message}`, 'error');
       }
     });
   }
@@ -180,9 +192,9 @@ function getErrorMessage(errorData) {
   if (errorData.detail) {
     if (Array.isArray(errorData.detail)) {
       // Handles FastAPI validation errors (422)
-      return errorData.detail.map((err) => err.msg).join("<br>");
+      return errorData.detail.map((err) => err.msg).join('<br>');
     }
     return errorData.detail; // Handles custom exceptions
   }
-  return "An unknown error occurred.";
+  return 'An unknown error occurred.';
 }
