@@ -1,108 +1,231 @@
-version: "3.8"
-
 services:
-  auth-service:
-    build:
-      context: ./auth-service
-    container_name: auth-service
-    ports:
-      - "5001:5001"
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 5001
-    volumes:
-      - ./auth-service:/usr/src/app
-    env_file: .env
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - DB_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - DB_HOST=db
-      - DB_PORT=5432
-      - REDIS_HOST=redis
-      - RUN_MIGRATIONS=1
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  chat-service:
-    build:
-      context: ./chat-service
-    container_name: chat-service
-    ports:
-      - "5002:5002"
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 5002
-    volumes:
-      - ./chat-service:/usr/src/app
-    env_file: .env
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - DB_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - DB_HOST=db
-      - DB_PORT=5432
-      - REDIS_HOST=redis
-      - RUN_MIGRATIONS=1
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  db:
-    image: postgres:15-alpine
-    container_name: postgres_db
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file: .env
-    ports:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: postgres-connectsphere
+    restart: always
+    environment: 
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgresql
+      POSTGRES_DB: connectsphere_db
+    ports: 
       - "5432:5432"
+    volumes:
+      -  postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1"]
-      interval: 2s
+      test: ["CMD-SHELL", "pg_isready -U postgres -d connectsphere_db"]
+      interval: 3s
       timeout: 3s
-      retries: 30
+      retries: 30  
 
+  # Redis Cache  
   redis:
     image: redis:7-alpine
-    container_name: redis_cache
-    restart: unless-stopped
+    container_name: redis-cache
+    restart: always
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 2s
+      interval: 3s
       timeout: 3s
-      retries: 30
+      retries: 30  
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+  # Redis Insight    
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    restart: always
     ports:
-      - "5050:80"
-    depends_on:
-      db:
-        condition: service_healthy
-
-  redisinsight:
-    image: redislabs/redisinsight:latest
-    # tip: new repo is redis/redisinsight:latest
-    container_name: redisinsight
-    restart: unless-stopped
-    ports:
-      - "8001:8001"
-    volumes:
-      - redisinsight_data:/db
+      - "5540:5540"
     depends_on:
       redis:
         condition: service_healthy
+    
 
+  # AUTH SERVICE (port 5001)
+  auth-service: 
+    build: ./auth-service
+    container_name: auth-service
+    restart: always
+    ports: 
+     - "5001:5001"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgresql@postgres:5432/connectsphere_db"
+      RUN_MIGRATIONS: "1" 
+      JWT_SECRETKEY: "ndrijr5809vn_ffvn3211"
+      JWT_ALGORITHM: "RS256"
+      ACCESS_TOKEN_EXPIRE: "360000"
+      REFRESH_TOKEN_EXPIRE: "2"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      JTI_EXPIRY: "900"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy  
+         
+
+  # CHAT SERVICE (port 5002)  
+  chat-service:
+    build: ./chat-service
+    container_name: chat-service
+    restart: always
+    ports:
+     - "5002:5002"
+    environment:
+      # If chat service also uses DB
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgresql@postgres:5432/connectsphere_db"
+      RUN_MIGRATIONS: "1" 
+      JWT_SECRETKEY: "ndrijr5809vn_ffvn3211"
+      JWT_ALGORITHM: "RS256"
+      ACCESS_TOKEN_EXPIRE: "360000"
+      REFRESH_TOKEN_EXPIRE: "2"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      JTI_EXPIRY: "900"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # CLIENT SERVICE (port 3000)     
+  client:
+    build: ./client
+    container_name: client-app
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      auth-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+     
+
+# VOLUMES
 volumes:
-  postgres_data:
-  redis_data:
-  redisinsight_data:
+  postgres_data:      
+    
+
+
+        
+
+       
+
+       
+
+
+#  ---------------------------------------
+# version: "3.8"
+
+# services:
+#   auth-service:
+#     build:
+#       context: ./auth-service
+#     container_name: auth-service
+#     ports:
+#       - "5001:5001"
+#     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 5001
+#     volumes:
+#       - ./auth-service:/usr/src/app
+#     env_file: .env
+#     environment:
+#       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+#       - DB_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+#       - DB_HOST=db
+#       - DB_PORT=5432
+#       - REDIS_HOST=redis
+#       - RUN_MIGRATIONS=1
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+
+#   chat-service:
+#     build:
+#       context: ./chat-service
+#     container_name: chat-service
+#     ports:
+#       - "5002:5002"
+#     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 5002
+#     volumes:
+#       - ./chat-service:/usr/src/app
+#     env_file: .env
+#     environment:
+#       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+#       - DB_DSN=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+#       - DB_HOST=db
+#       - DB_PORT=5432
+#       - REDIS_HOST=redis
+#       - RUN_MIGRATIONS=1
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+
+#   db:
+#     image: postgres:15-alpine
+#     container_name: postgres_db
+#     restart: unless-stopped
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data/
+#     env_file: .env
+#     ports:
+#       - "5432:5432"
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h 127.0.0.1"]
+#       interval: 2s
+#       timeout: 3s
+#       retries: 30
+
+#   redis:
+#     image: redis:7-alpine
+#     container_name: redis_cache
+#     restart: unless-stopped
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 2s
+#       timeout: 3s
+#       retries: 30
+
+#   pgadmin:
+#     image: dpage/pgadmin4
+#     container_name: pgadmin
+#     restart: unless-stopped
+#     environment:
+#       PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#       PGADMIN_DEFAULT_PASSWORD: admin
+#     ports:
+#       - "5050:80"
+#     depends_on:
+#       db:
+#         condition: service_healthy
+
+#   redisinsight:
+#     image: redislabs/redisinsight:latest
+#     # tip: new repo is redis/redisinsight:latest
+#     container_name: redisinsight
+#     restart: unless-stopped
+#     ports:
+#       - "8001:8001"
+#     volumes:
+#       - redisinsight_data:/db
+#     depends_on:
+#       redis:
+#         condition: service_healthy
+
+# volumes:
+#   postgres_data:
+#   redis_data:
+#   redisinsight_data:

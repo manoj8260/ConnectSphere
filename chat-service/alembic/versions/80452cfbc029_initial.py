@@ -1,8 +1,8 @@
-""" modify role in RoomParticipant model
+"""initial
 
-Revision ID: caf2e5913059
-Revises: 85ddc8e3bc0c
-Create Date: 2025-10-11 23:18:49.023712
+Revision ID: 80452cfbc029
+Revises: 6749e7c7bb31
+Create Date: 2025-12-12 14:40:16.485639
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'caf2e5913059'
-down_revision: Union[str, Sequence[str], None] = '85ddc8e3bc0c'
+revision: str = '80452cfbc029'
+down_revision: Union[str, Sequence[str], None] = '6749e7c7bb31'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
